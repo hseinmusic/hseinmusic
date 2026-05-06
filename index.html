@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>hsein</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: #000;
+color: #fff;
+font-family: Arial, Helvetica, sans-serif;
+min-height: 100vh;
+overflow-x: hidden;
+position: relative;
+}
+
+/* the whole page is a big canvas */
+.page {
+position: relative;
+width: 100%;
+min-height: 6000px;
+padding: 0 0 200px 0;
+}
+
+/* floating text fragments — all absolutely positioned for that scattered feel */
+.frag {
+position: absolute;
+color: #fff;
+line-height: 1.3;
+}
+
+/* handwritten style — just bold arial now */
+.hand {
+font-family: Arial, Helvetica, sans-serif;
+font-weight: bold;
+}
+
+/* typewriter style — just arial */
+.type {
+font-family: Arial, Helvetica, sans-serif;
+}
+
+/* mono small */
+.mono {
+font-family: Arial, Helvetica, sans-serif;
+font-size: 12px;
+letter-spacing: 1px;
+}
+
+/* big title */
+.huge {
+font-family: Arial, Helvetica, sans-serif;
+font-size: clamp(80px, 15vw, 160px);
+font-weight: 700;
+line-height: 0.9;
+}
+
+.big {
+font-family: Arial, Helvetica, sans-serif;
+font-size: clamp(36px, 6vw, 72px);
+font-weight: 600;
+}
+
+.med {
+font-family: Arial, Helvetica, sans-serif;
+font-size: clamp(22px, 3.5vw, 40px);
+}
+
+.small {
+font-size: 12px;
+letter-spacing: 2px;
+text-transform: uppercase;
+opacity: 0.5;
+}
+
+.tiny {
+font-size: 10px;
+opacity: 0.3;
+letter-spacing: 1px;
+}
+
+/* rotated, dim, faded text */
+.rot-left { transform: rotate(-8deg); }
+.rot-right { transform: rotate(6deg); }
+.rot-tiny { transform: rotate(-2deg); }
+.rot-steep { transform: rotate(-18deg); }
+.rot-v { transform: rotate(-90deg); }
+.dim { opacity: 0.2; }
+.dimmer { opacity: 0.1; }
+.accent { color: #e8e8e8; }
+
+/* rough hand-drawn box */
+.box {
+border: 1.5px solid #fff;
+padding: 12px 16px;
+display: inline-block;
+}
+
+.box-dashed {
+border: 1.5px dashed rgba(255,255,255,0.4);
+padding: 10px 14px;
+display: inline-block;
+}
+
+/* underline squiggle via border */
+.underline { border-bottom: 1.5px solid #fff; padding-bottom: 2px; }
+
+/* track items */
+.track-item {
+font-family: Arial, Helvetica, sans-serif;
+font-size: 13px;
+display: flex;
+gap: 10px;
+align-items: baseline;
+opacity: 0.8;
+white-space: nowrap;
+}
+
+.track-item .n { opacity: 0.3; font-size: 10px; }
+.track-item.done { opacity: 1; }
+.track-item.pending { opacity: 0.3; }
+
+/* horizontal rule hand-drawn feel */
+.line-h {
+position: absolute;
+height: 1px;
+background: rgba(255,255,255,0.15);
+}
+
+.line-v {
+position: absolute;
+width: 1px;
+background: rgba(255,255,255,0.1);
+}
+
+/* circles */
+.circle {
+position: absolute;
+border-radius: 50%;
+border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* arrow made of text */
+.arrow {
+font-size: 11px;
+letter-spacing: 1px;
+opacity: 0.3;
+}
+
+/* footer area */
+.footer-txt {
+position: absolute;
+bottom: 60px;
+left: 0; right: 0;
+text-align: center;
+font-size: 10px;
+opacity: 0.2;
+letter-spacing: 3px;
+text-transform: uppercase;
+font-family: Arial, Helvetica, sans-serif;
+}
+
+/* visitor counter */
+.counter {
+font-family: Arial, Helvetica, sans-serif;
+font-size: 11px;
+opacity: 0.4;
+letter-spacing: 2px;
+}
+
+/* ── TRACK PLAYER ── */
+.track-item {
+cursor: pointer;
+user-select: none;
+}
+.track-item:hover .track-name { text-decoration: underline; }
+.track-item.playing .track-name { color: #ffe135; }
+.track-item.playing .n { color: #ffe135; opacity: 1; }
+.play-icon {
+font-size: 9px;
+min-width: 10px;
+opacity: 0;
+transition: opacity 0.15s;
+}
+.track-item:hover .play-icon,
+.track-item.playing .play-icon { opacity: 1; }
+.track-item.playing .play-icon { color: #ffe135; }
+
+/* mini sticky player bar */
+#player-bar {
+position: fixed;
+bottom: 0; left: 0; right: 0;
+background: #111;
+border-top: 1px solid #222;
+padding: 10px 20px;
+display: none;
+align-items: center;
+gap: 14px;
+z-index: 9999;
+font-size: 12px;
+}
+#player-bar.visible { display: flex; }
+#player-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
+#player-title span { color: #ffe135; }
+#player-btn {
+background: none; border: 1px solid #444; color: #fff;
+width: 28px; height: 28px; cursor: pointer; font-size: 11px;
+display: flex; align-items: center; justify-content: center;
+flex-shrink: 0;
+}
+#player-btn:hover { border-color: #fff; }
+#player-progress {
+flex: 2; height: 2px; background: #2a2a2a; cursor: pointer; position: relative;
+}
+#player-fill { height: 100%; background: #ffe135; width: 0%; transition: width 0.1s linear; }
+#player-time { opacity: 0.4; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+#player-close {
+background: none; border: none; color: #444; cursor: pointer; font-size: 16px; line-height: 1;
+padding: 0 4px;
+}
+#player-close:hover { color: #fff; }
+
+/* ── SOCIALS CORNER ── */
+#socials {
+position: fixed;
+top: 18px; right: 18px;
+z-index: 9998;
+display: flex;
+flex-direction: column;
+align-items: flex-end;
+gap: 6px;
+}
+.social-link {
+display: flex;
+align-items: center;
+gap: 7px;
+color: rgba(255,255,255,0.35);
+text-decoration: none;
+font-size: 11px;
+letter-spacing: 1px;
+transition: color 0.15s;
+white-space: nowrap;
+}
+.social-link:hover { color: #fff; }
+.social-icon {
+width: 22px; height: 22px;
+border: 1px solid currentColor;
+display: flex; align-items: center; justify-content: center;
+font-size: 11px; flex-shrink: 0;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ── SOCIALS CORNER ── -->
+
+<div id="socials">
+  <a class="social-link" href="#" title="Instagram">
+    <span class="social-icon">ig</span>
+    <span>@hsein</span>
+  </a>
+  <a class="social-link" href="#" title="SoundCloud">
+    <span class="social-icon">sc</span>
+    <span>soundcloud</span>
+  </a>
+  <a class="social-link" href="#" title="Bandcamp">
+    <span class="social-icon">bc</span>
+    <span>bandcamp</span>
+  </a>
+  <a class="social-link" href="mailto:hsein@example.com" title="Email">
+    <span class="social-icon">@</span>
+    <span>email</span>
+  </a>
+</div>
+
+<!-- ── STICKY PLAYER BAR ── -->
+
+<div id="player-bar">
+  <button id="player-btn" onclick="togglePlay()">▶</button>
+  <div id="player-title">— <span id="now-playing">nothing</span></div>
+  <div id="player-progress" onclick="seekClick(event)">
+    <div id="player-fill"></div>
+  </div>
+  <div id="player-time">0:00 / 0:00</div>
+  <button id="player-close" onclick="closePlayer()" title="close">×</button>
+</div>
+
+<div class="page" id="pg">
+
+  <!-- ===== BG LAYER — scattered all over ===== -->
+
+  <!-- top zone -->
+
+  <div class="frag" style="top:20px; left:35vw; font-size:clamp(55px,11vw,120px); font-weight:700; color:#f06fff; opacity:0.07; transform:rotate(-3deg);">music</div>
+  <div class="frag" style="top:3350px; left:8vw; font-size:clamp(40px,9vw,100px); font-weight:700; color:#f06fff; opacity:0.07; transform:rotate(-2deg);">flanger dream</div>
+  <div class="frag" style="top:150px; right:2vw; font-size:11px; opacity:0.07; letter-spacing:4px; writing-mode:vertical-rl; color:#3bf0c4;">bedroom recording session 2024 2025</div>
+  <div class="frag" style="top:260px; left:45vw; font-size:9px; opacity:0.08; letter-spacing:3px; color:#ffe135; transform:rotate(2deg);">tape hiss tape hiss tape hiss tape hiss tape hiss</div>
+
+  <!-- zone 400–900 -->
+
+  <div class="frag" style="top:400px; right:6vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.09; transform:rotate(-5deg);">home</div>
+  <div class="frag" style="top:480px; left:50vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff; transform:rotate(-1deg);">all lyrics written by hand in a notebook somewhere</div>
+  <div class="frag" style="top:600px; right:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(7deg);">cassette</div>
+  <div class="frag" style="top:720px; left:4vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4;">guitar · voice · phone mic · reverb · silence</div>
+  <div class="frag" style="top:830px; left:48vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.09; transform:rotate(-9deg);">alone</div>
+
+  <!-- zone 1000–1500 -->
+
+  <div class="frag" style="top:1020px; right:4vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ff6b35; opacity:0.08; transform:rotate(4deg);">noise</div>
+  <div class="frag" style="top:1060px; left:40vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#f06fff; transform:rotate(-2deg);">recorded live / no edits / what you hear is what happened</div>
+  <div class="frag" style="top:1140px; left:2vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#3bf0c4; opacity:0.07; transform:rotate(-6deg);">sad</div>
+  <div class="frag" style="top:1380px; right:8vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#ffe135; opacity:0.09; transform:rotate(5deg);">winter</div>
+  <div class="frag" style="top:1430px; left:30vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff;">i don't know what genre this is and i don't care</div>
+  <div class="frag" style="top:1500px; right:25vw; font-size:clamp(22px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(-4deg);">reverb</div>
+
+  <!-- zone 1600–2100 -->
+
+  <div class="frag" style="top:1650px; left:1vw; font-size:9px; opacity:0.06; letter-spacing:3px; writing-mode:vertical-rl; color:#ff6b35;">the microphones neutral milk hotel eric's trip car seat headrest</div>
+  <div class="frag" style="top:1680px; left:55vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#3bf0c4; opacity:0.08; transform:rotate(6deg);">folk</div>
+  <div class="frag" style="top:1780px; right:2vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#ffe135; transform:rotate(1deg);">somewhere between k records and a power outage</div>
+  <div class="frag" style="top:1880px; left:2vw; font-size:clamp(35px,6vw,65px); font-weight:700; color:#f06fff; opacity:0.09; transform:rotate(-7deg);">indie</div>
+  <div class="frag" style="top:2000px; left:55vw; font-size:clamp(22px,4vw,48px); font-weight:700; color:#ff6b35; opacity:0.1; transform:rotate(3deg);">demo</div>
+  <div class="frag" style="top:2060px; left:10vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4;">songs about nothing. songs about everything. mostly nothing.</div>
+  <div class="frag" style="top:2130px; right:15vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#a855f7; opacity:0.09; transform:rotate(-3deg);">3am</div>
+
+  <!-- zone 2200–2700 -->
+
+  <div class="frag" style="top:2230px; left:2vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(5deg);">beirut</div>
+  <div class="frag" style="top:2280px; right:5vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#f06fff; transform:rotate(-2deg);">track 01 track 02 track 03 track 04 track 05 track 06</div>
+  <div class="frag" style="top:2380px; left:40vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#3bf0c4; opacity:0.09; transform:rotate(-8deg);">guitar</div>
+  <div class="frag" style="top:2460px; left:5vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#ff6b35;">no release date. no label. no plan. just songs.</div>
+  <div class="frag" style="top:2530px; right:10vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(6deg);">voice</div>
+  <div class="frag" style="top:2640px; left:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(-4deg);">unfinished</div>
+  <div class="frag" style="top:2680px; right:30vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff;">track 07 track 08 track 09 track 10 track 11 ...</div>
+
+  <!-- zone 2800–3300 -->
+
+  <div class="frag" style="top:2800px; left:3vw; font-size:clamp(45px,8vw,90px); font-weight:700; color:#f06fff; opacity:0.08; transform:rotate(-5deg);">sleep</div>
+  <div class="frag" style="top:2860px; left:40vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4; transform:rotate(1deg);">this will come out eventually. maybe. probably. i think.</div>
+  <div class="frag" style="top:2960px; left:15vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.09; transform:rotate(4deg);">lo-fi</div>
+  <div class="frag" style="top:3020px; right:6vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(-6deg);">done</div>
+  <div class="frag" style="top:3060px; left:5vw; font-size:9px; opacity:0.06; letter-spacing:2px; color:#a855f7;">hsein — hsein — hsein — hsein — hsein — hsein — hsein</div>
+  <div class="frag" style="top:3150px; left:35vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#3bf0c4; opacity:0.07; transform:rotate(3deg);">thank you</div>
+  <div class="frag" style="top:3250px; right:8vw; font-size:9px; opacity:0.06; letter-spacing:2px; color:#ff6b35; transform:rotate(-1deg);">for listening. or for just being here. or for scrolling this far.</div>
+
+  <!-- ===== TITLE AREA ===== -->
+
+  <div class="frag huge" style="top:60px; left:8vw;">hsein</div>
+
+  <div class="frag hand rot-right" style="top:80px; left:52vw; font-size:14px; opacity:0.5;">
+    music from a bedroom<br>in beirut
+  </div>
+
+  <div class="frag big rot-tiny" style="top:200px; left:8vw; font-size:clamp(20px,4vw,42px); opacity:0.85; font-style:italic;">flanger dream</div>
+
+  <div class="frag small" style="top:270px; left:8vw;">— lo-fi recordings —</div>
+
+  <div class="frag tiny rot-steep" style="top:40px; right:12vw; font-size:9px; opacity:0.2; letter-spacing:3px; writing-mode:vertical-rl;">
+    all songs written & arranged
+  </div>
+
+  <!-- decorative circle -->
+
+  <div class="circle" style="width:300px;height:300px;top:-80px;right:5vw;"></div>
+  <div class="circle" style="width:120px;height:120px;top:100px;right:18vw; opacity:0.06;"></div>
+
+  <!-- ===== ABOUT FRAGMENT ===== -->
+
+  <div class="frag type" style="top:310px; left:60vw; font-size:13px; max-width:220px; opacity:0.7; line-height:1.6;">
+    recorded on a phone.<br>
+    no fancy gear.<br>
+    tape hiss is free.
+  </div>
+
+  <div class="frag hand rot-left" style="top:290px; left:9vw; font-size:28px;">
+    one album.<br>18 tracks.
+  </div>
+
+  <div class="frag tiny" style="top:370px; left:9vw;">
+    (most of them done)
+  </div>
+
+  <!-- ===== TRACKLIST ===== -->
+
+  <div class="frag big" style="top:450px; left:6vw; opacity:0.9;">tracklist</div>
+
+  <div class="frag" style="top:540px; left:8vw; display:flex; flex-direction:column; gap:6px;">
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 01"><span class="play-icon">▶</span><span class="n">01</span><span class="track-name">track 01</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 02"><span class="play-icon">▶</span><span class="n">02</span><span class="track-name">track 02</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 03"><span class="play-icon">▶</span><span class="n">03</span><span class="track-name">track 03</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 04"><span class="play-icon">▶</span><span class="n">04</span><span class="track-name">track 04</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 05"><span class="play-icon">▶</span><span class="n">05</span><span class="track-name">track 05</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 06"><span class="play-icon">▶</span><span class="n">06</span><span class="track-name">track 06</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 07"><span class="play-icon">▶</span><span class="n">07</span><span class="track-name">track 07</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 08"><span class="play-icon">▶</span><span class="n">08</span><span class="track-name">track 08</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 09"><span class="play-icon">▶</span><span class="n">09</span><span class="track-name">track 09</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 10"><span class="play-icon">▶</span><span class="n">10</span><span class="track-name">track 10</span></div>
+    <div class="track-item done" onclick="playTrack(this)" data-title="track 11"><span class="play-icon">▶</span><span class="n">11</span><span class="track-name">track 11</span></div>
+  </div>
+
+  <!-- right column pending -->
+
+  <div class="frag" style="top:540px; left:28vw; display:flex; flex-direction:column; gap:6px;">
+    <div class="track-item pending"><span class="n">12</span> track 12</div>
+    <div class="track-item pending"><span class="n">13</span> track 13</div>
+    <div class="track-item pending"><span class="n">14</span> track 14</div>
+    <div class="track-item pending"><span class="n">15</span> track 15</div>
+    <div class="track-item pending"><span class="n">16</span> track 16</div>
+    <div class="track-item pending"><span class="n">17</span> track 17</div>
+    <div class="track-item pending"><span class="n">18</span> track 18</div>
+  </div>
+
+  <!-- annotation near pending tracks -->
+
+  <div class="frag hand rot-right" style="top:660px; left:42vw; font-size:17px; opacity:0.35;">
+    ← not yet :(
+  </div>
+
+  <!-- progress note -->
+
+  <div class="frag box" style="top:880px; left:55vw; font-family:Arial,sans-serif; font-size:22px; font-weight:bold;">
+    11 / 18 done
+  </div>
+
+  <!-- ===== SCATTERED WORDS ===== -->
+
+  <div class="frag dimmer huge rot-left" style="top:760px; right:-2vw; font-size:clamp(60px,12vw,130px); color:#ff6b35; opacity:0.18;">
+    beirut
+  </div>
+
+  <div class="frag hand" style="top:950px; left:10vw; font-size:20px; opacity:0.6;">
+    genre: lo-fi / folk / whatever
+  </div>
+
+  <div class="frag tiny rot-tiny" style="top:990px; left:10vw; opacity:0.25;">
+    sounds like: the microphones, neutral milk hotel,<br>
+    eric's trip, car seat headrest
+  </div>
+
+  <div class="frag type rot-left" style="top:1040px; left:55vw; font-size:12px; max-width:180px; opacity:0.4; line-height:1.8;">
+    "sounds like those bands<br>but worse"
+  </div>
+
+  <!-- ===== SECTION: ABOUT ===== -->
+
+  <div class="line-h" style="top:1120px; left:6vw; width:88vw;"></div>
+
+  <div class="frag big" style="top:1150px; left:6vw;">about</div>
+
+  <div class="frag hand rot-tiny" style="top:1240px; left:8vw; font-size:19px; max-width:360px; line-height:1.6; opacity:0.8;">
+    i write songs and record them on my phone.<br>
+    i live in beirut.<br>
+    i'm finishing an album.<br>
+    no release date.<br>
+    it'll be done when it's done.
+  </div>
+
+  <div class="frag type" style="top:1240px; left:55vw; font-size:12px; opacity:0.4; line-height:2;">
+    gear: phone<br>
+    location: beirut, lb<br>
+    status: recording<br>
+    year: 2024–2025
+  </div>
+
+  <div class="frag tiny rot-steep" style="top:1180px; right:8vw; opacity:0.15; font-size:9px; letter-spacing:2px; writing-mode:vertical-rl;">
+    hsein — music — beirut — lo-fi
+  </div>
+
+  <!-- decorative fragments -->
+
+  <div class="frag dimmer" style="top:1460px; left:3vw; font-size:clamp(50px,10vw,100px); font-family:Arial,sans-serif; font-weight:700; color:#ffe135; opacity:0.22;">
+    ♪
+  </div>
+
+  <div class="frag arrow" style="top:1500px; left:22vw;">
+    ↓ &nbsp; keep scrolling &nbsp; ↓
+  </div>
+
+  <!-- ===== SECTION: INFLUENCES ===== -->
+
+  <div class="line-h" style="top:1600px; left:6vw; width:88vw;"></div>
+
+  <!-- extra colorful background words -->
+
+  <div class="frag" style="top:1550px; left:2vw; font-size:clamp(40px,8vw,90px); font-weight:700; color:#3bf0c4; opacity:0.1; transform:rotate(5deg);">lo-fi</div>
+  <div class="frag" style="top:2080px; right:3vw; font-size:clamp(30px,6vw,70px); font-weight:700; color:#ff6b35; opacity:0.12; transform:rotate(-6deg);">folk</div>
+  <div class="frag" style="top:1200px; left:68vw; font-size:clamp(25px,5vw,60px); font-weight:700; color:#ffe135; opacity:0.1; transform:rotate(3deg);">phone</div>
+  <div class="frag" style="top:2600px; left:5vw; font-size:clamp(35px,7vw,80px); font-weight:700; color:#f06fff; opacity:0.1; transform:rotate(-4deg);">2024</div>
+  <div class="frag" style="top:680px; left:70vw; font-size:clamp(20px,4vw,50px); font-weight:700; color:#3bf0c4; opacity:0.1; transform:rotate(8deg);">18 tracks</div>
+
+  <div class="frag big" style="top:1630px; right:8vw; text-align:right;">
+    sounds like
+  </div>
+
+  <div class="frag hand" style="top:1720px; left:8vw; font-size:26px;">the microphones</div>
+  <div class="frag tiny" style="top:1760px; left:8vw; opacity:0.3;">mount eerie / elegy for a dead world</div>
+
+  <div class="frag hand rot-right" style="top:1810px; left:25vw; font-size:22px; opacity:0.7;">neutral milk hotel</div>
+  <div class="frag tiny" style="top:1846px; left:25vw; opacity:0.2;">in the aeroplane over the sea</div>
+
+  <div class="frag hand" style="top:1900px; left:10vw; font-size:20px; opacity:0.65;">eric's trip</div>
+  <div class="frag tiny" style="top:1932px; left:10vw; opacity:0.2;">love tara / forever again</div>
+
+  <div class="frag hand rot-left" style="top:1970px; left:40vw; font-size:24px; opacity:0.75;">car seat headrest</div>
+  <div class="frag tiny" style="top:2008px; left:40vw; opacity:0.2;">twin fantasy</div>
+
+  <div class="frag type rot-tiny" style="top:1730px; right:10vw; font-size:11px; opacity:0.25; max-width:200px; line-height:1.8;">
+    tape hiss.<br>
+    bedroom acoustics.<br>
+    songs that feel like<br>
+    3am in winter.
+  </div>
+
+  <!-- circle decoration -->
+
+  <div class="circle" style="width:200px;height:200px;top:1850px;right:4vw;opacity:0.05;"></div>
+
+  <!-- ===== RECOMMENDATIONS ===== -->
+
+  <div class="line-h" style="top:2160px; left:6vw; width:88vw;"></div>
+
+  <div class="frag big rot-right" style="top:2190px; left:6vw;">if you like this,<br>listen to:</div>
+
+  <div class="frag box-dashed" style="top:2310px; left:8vw; max-width:300px; font-size:13px; line-height:1.9;">
+    <span style="font-size:15px; font-weight:bold;">The Microphones</span><br>
+    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">mount eerie · 2001</span><br>
+    <span style="opacity:0.7;">the one that started it all for a lot of us. lo-fi folk recorded in a basement. feels like fog.</span>
+  </div>
+
+  <div class="frag box-dashed rot-left" style="top:2360px; left:40vw; max-width:280px; font-size:13px; line-height:1.9;">
+    <span style="font-size:15px; font-weight:bold;">Neutral Milk Hotel</span><br>
+    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">in the aeroplane over the sea · 1998</span><br>
+    <span style="opacity:0.7;">loud and quiet and weird and beautiful. everyone's favorite for a reason.</span>
+  </div>
+
+  <div class="frag box-dashed" style="top:2490px; left:20vw; max-width:290px; font-size:13px; line-height:1.9;">
+    <span style="font-size:15px; font-weight:bold;">Eric's Trip</span><br>
+    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">love tara · 1993</span><br>
+    <span style="opacity:0.7;">canadian bedroom noise pop. recorded on 4-track. sounds like it was made at 2am in a cold room.</span>
+  </div>
+
+  <div class="frag box-dashed rot-tiny" style="top:2600px; left:6vw; max-width:270px; font-size:13px; line-height:1.9;">
+    <span style="font-size:15px; font-weight:bold;">Car Seat Headrest</span><br>
+    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">twin fantasy · 2011</span><br>
+    <span style="opacity:0.7;">made alone on a laptop and uploaded to bandcamp. became something huge. proof it works.</span>
+  </div>
+
+  <div class="frag box-dashed" style="top:2640px; left:44vw; max-width:280px; font-size:13px; line-height:1.9;">
+    <span style="font-size:15px; font-weight:bold;">Bright Eyes</span><br>
+    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">i'm wide awake it's morning · 2005</span><br>
+    <span style="opacity:0.7;">raspy voice, acoustic guitar, too many feelings. essential.</span>
+  </div>
+
+  <!-- ===== RANDOM SCATTERED STUFF ===== -->
+
+  <div class="frag dimmer" style="top:2700px; left:50vw; font-size:clamp(70px,14vw,150px); font-family:Arial,sans-serif; font-weight:700; line-height:1; color:#a855f7; opacity:0.2;">
+    ↯
+  </div>
+
+  <div class="frag type rot-left" style="top:2720px; left:6vw; font-size:11px; opacity:0.3; line-height:2;">
+    this website was made with basic html<br>
+    no frameworks. no npm install.<br>
+    just a text file.
+  </div>
+
+  <div class="frag hand" style="top:2840px; left:30vw; font-size:20px; opacity:0.5; transform: rotate(3deg);">
+    more music someday
+  </div>
+
+  <div class="frag tiny rot-tiny" style="top:2920px; left:8vw; opacity:0.2;">
+    © hsein — no rights reserved — beirut, lb — 2025
+  </div>
+
+  <!-- visitor counter in corner -->
+
+  <div class="frag counter" style="top:2960px; right:8vw; text-align:right;">
+    visitors: <span id="ctr">000000</span>
+  </div>
+
+  <!-- very bottom scattered -->
+
+  <div class="frag dimmer" style="top:3100px; left:15vw; font-size:11px; font-family:Arial,sans-serif; letter-spacing:3px; opacity:0.08; transform:rotate(-1deg); color:#ff6b35;">
+    hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein
+  </div>
+
+  <div class="frag hand" style="top:3200px; left:40vw; font-size:clamp(50px,9vw,90px); font-weight:700; opacity:0.08; color:#3bf0c4;">
+    end
+  </div>
+
+</div>
+
+<!-- footer -->
+
+<div class="footer-txt">
+  hsein — music — beirut — 2025
+</div>
+
+<script>
+  const n = 3847 + Math.floor(Math.random() * 300);
+  document.getElementById('ctr').textContent = String(n).padStart(6,'0');
+
+  // ── PLAYER ──
+  let audio = new Audio();
+  let currentEl = null;
+
+  // Tracks: replace src with actual file paths or URLs when you have them
+  const tracks = {
+    'track 01': null,
+    'track 02': null,
+    'track 03': null,
+    'track 04': null,
+    'track 05': null,
+    'track 06': null,
+    'track 07': null,
+    'track 08': null,
+    'track 09': null,
+    'track 10': null,
+    'track 11': null,
+  };
+
+  function fmt(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function playTrack(el) {
+    const title = el.dataset.title;
+    const src = tracks[title];
+
+    // if clicking the same track, toggle
+    if (currentEl === el) {
+      togglePlay();
+      return;
+    }
+
+    // deactivate previous
+    if (currentEl) currentEl.classList.remove('playing');
+    currentEl = el;
+    el.classList.add('playing');
+
+    if (src) {
+      audio.src = src;
+      audio.play();
+    } else {
+      // no file yet — simulate with a dummy duration for UI demo
+      audio.src = '';
+      showNoFile(title);
+      return;
+    }
+
+    document.getElementById('now-playing').textContent = title + ' — flanger dream';
+    document.getElementById('player-bar').classList.add('visible');
+    document.getElementById('player-btn').textContent = '⏸';
+  }
+
+  function showNoFile(title) {
+    document.getElementById('now-playing').textContent = title + ' (no file yet)';
+    document.getElementById('player-bar').classList.add('visible');
+    document.getElementById('player-btn').textContent = '▶';
+    document.getElementById('player-fill').style.width = '0%';
+    document.getElementById('player-time').textContent = '– / –';
+  }
+
+  function togglePlay() {
+    if (!audio.src || audio.src === window.location.href) return;
+    if (audio.paused) {
+      audio.play();
+      document.getElementById('player-btn').textContent = '⏸';
+    } else {
+      audio.pause();
+      document.getElementById('player-btn').textContent = '▶';
+    }
+  }
+
+  function closePlayer() {
+    audio.pause();
+    audio.src = '';
+    if (currentEl) currentEl.classList.remove('playing');
+    currentEl = null;
+    document.getElementById('player-bar').classList.remove('visible');
+  }
+
+  function seekClick(e) {
+    if (!audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    document.getElementById('player-fill').style.width = pct + '%';
+    document.getElementById('player-time').textContent =
+      fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+  });
+
+  audio.addEventListener('ended', () => {
+    document.getElementById('player-btn').textContent = '▶';
+    document.getElementById('player-fill').style.width = '0%';
+    if (currentEl) currentEl.classList.remove('playing');
+    currentEl = null;
+  });
+</script>
+
+</body>
+</html>
