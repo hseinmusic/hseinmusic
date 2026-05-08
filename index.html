@@ -17,12 +17,94 @@ overflow-x: hidden;
 position: relative;
 }
 
+/* grain overlay */
+body::after {
+content: ‘’;
+position: fixed;
+inset: 0;
+pointer-events: none;
+z-index: 99998;
+opacity: 0.035;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 200 200’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23n)’/%3E%3C/svg%3E”);
+background-size: 180px 180px;
+}
+
+/* cursor dot */
+#cursor {
+position: fixed;
+width: 6px; height: 6px;
+background: #fff;
+border-radius: 50%;
+pointer-events: none;
+z-index: 99997;
+transform: translate(-50%, -50%);
+mix-blend-mode: difference;
+transition: transform 0.05s;
+}
+
+/* title glitch */
+@keyframes glitch {
+0%,94%,100% { text-shadow: none; clip-path: none; transform: none; }
+95% { text-shadow: 2px 0 #ff6b35, -2px 0 #3bf0c4; transform: skewX(-1deg); }
+97% { text-shadow: -3px 0 #f06fff, 3px 0 #ffe135; transform: skewX(1deg); }
+99% { text-shadow: 1px 0 #ff6b35; transform: none; }
+}
+
+.huge { animation: glitch 7s infinite; }
+
+/* colored bg words — blend mode so they interact with art */
+.bg-word {
+mix-blend-mode: screen;
+}
+
+/* section dividers — gradient fade instead of flat line */
+.line-h {
+position: absolute;
+height: 1px;
+background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 20%, rgba(255,255,255,0.2) 80%, transparent);
+}
+
+/* hover on track — highlight whole row */
+.track-item { transition: letter-spacing 0.15s; }
+.track-item.done:hover { letter-spacing: 1.5px; }
+
+/* art hover — slight rotation snap */
+.art { transition: opacity 0.3s, transform 0.3s; }
+.art:hover { opacity: 0.35 !important; transform: rotate(0deg) scale(1.03) !important; }
+
+/* playing track pulse */
+@keyframes trackpulse {
+0%,100% { opacity: 1; }
+50% { opacity: 0.6; }
+}
+.track-item.playing { animation: trackpulse 1.8s ease-in-out infinite; }
+
+/* social link — underline draw on hover */
+.social-link {
+position: relative;
+}
+.social-link::after {
+content: ‘’;
+position: absolute;
+bottom: 0; left: 14px; right: 14px;
+height: 1px;
+background: #fff;
+transform: scaleX(0);
+transform-origin: left;
+transition: transform 0.2s;
+}
+.social-link:hover::after { transform: scaleX(1); }
+
+/* section titles — hover reveals accent */
+.big { transition: color 0.2s, letter-spacing 0.2s; cursor: default; }
+.big:hover { color: #ffe135; letter-spacing: 2px; }
+
 /* the whole page is a big canvas */
 .page {
 position: relative;
 width: 100%;
-min-height: 6000px;
-padding: 0 0 200px 0;
+min-height: 3000px;
+padding-top: 34px;
 }
 
 /* floating text fragments — all absolutely positioned for that scattered feel */
@@ -53,31 +135,33 @@ letter-spacing: 1px;
 /* big title */
 .huge {
 font-family: Arial, Helvetica, sans-serif;
-font-size: clamp(80px, 15vw, 160px);
-font-weight: 700;
+font-size: clamp(100px, 18vw, 200px);
+font-weight: 900;
 line-height: 0.9;
 }
 
 .big {
 font-family: Arial, Helvetica, sans-serif;
-font-size: clamp(36px, 6vw, 72px);
-font-weight: 600;
+font-size: clamp(44px, 7vw, 90px);
+font-weight: 800;
 }
 
 .med {
 font-family: Arial, Helvetica, sans-serif;
-font-size: clamp(22px, 3.5vw, 40px);
+font-size: clamp(28px, 4.5vw, 52px);
+font-weight: 700;
 }
 
 .small {
-font-size: 12px;
-letter-spacing: 2px;
+font-size: 14px;
+letter-spacing: 3px;
 text-transform: uppercase;
 opacity: 0.5;
+font-weight: 600;
 }
 
 .tiny {
-font-size: 10px;
+font-size: 13px;
 opacity: 0.3;
 letter-spacing: 1px;
 }
@@ -111,7 +195,8 @@ display: inline-block;
 /* track items */
 .track-item {
 font-family: Arial, Helvetica, sans-serif;
-font-size: 13px;
+font-size: 16px;
+font-weight: 600;
 display: flex;
 gap: 10px;
 align-items: baseline;
@@ -119,7 +204,7 @@ opacity: 0.8;
 white-space: nowrap;
 }
 
-.track-item .n { opacity: 0.3; font-size: 10px; }
+.track-item .n { opacity: 0.3; font-size: 12px; }
 .track-item.done { opacity: 1; }
 .track-item.pending { opacity: 0.3; }
 
@@ -171,6 +256,53 @@ opacity: 0.4;
 letter-spacing: 2px;
 }
 
+/* ── ALBUM ART ── */
+.art {
+position: absolute;
+overflow: hidden;
+opacity: 0.12;
+transition: opacity 0.3s;
+cursor: pointer;
+}
+.art:hover { opacity: 0.28; }
+.art img {
+width: 100%; height: 100%;
+object-fit: cover;
+display: block;
+filter: grayscale(40%) contrast(1.1);
+}
+.art-placeholder {
+width: 100%; height: 100%;
+border: 1.5px dashed rgba(255,255,255,0.25);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 6px;
+color: rgba(255,255,255,0.2);
+font-size: 10px;
+letter-spacing: 2px;
+text-transform: uppercase;
+text-align: center;
+padding: 8px;
+}
+.art-placeholder span { font-size: 22px; opacity: 0.4; }
+.art input[type=file] {
+position: absolute; inset: 0;
+opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+@media (max-width: 600px) {
+.credits-block { position: static !important; transform: none !important; display: block !important; }
+#credits-wrap {
+position: absolute;
+left: 6vw !important;
+width: 88vw !important;
+display: flex !important;
+flex-direction: column !important;
+gap: 18px !important;
+}
+}
+
 /* ── TRACK PLAYER ── */
 .track-item {
 cursor: pointer;
@@ -193,16 +325,20 @@ transition: opacity 0.15s;
 #player-bar {
 position: fixed;
 bottom: 0; left: 0; right: 0;
-background: #111;
+background: #0e0e0e;
 border-top: 1px solid #222;
-padding: 10px 20px;
-display: none;
-align-items: center;
-gap: 14px;
 z-index: 9999;
 font-size: 12px;
+display: none;
+flex-direction: column;
 }
 #player-bar.visible { display: flex; }
+#player-main {
+display: flex;
+align-items: center;
+gap: 14px;
+padding: 10px 20px;
+}
 #player-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
 #player-title span { color: #ffe135; }
 #player-btn {
@@ -217,76 +353,109 @@ flex: 2; height: 2px; background: #2a2a2a; cursor: pointer; position: relative;
 }
 #player-fill { height: 100%; background: #ffe135; width: 0%; transition: width 0.1s linear; }
 #player-time { opacity: 0.4; font-size: 10px; letter-spacing: 1px; white-space: nowrap; }
+#lyrics-toggle {
+background: none; border: 1px solid #333; color: #666;
+font-size: 10px; letter-spacing: 2px; padding: 3px 8px; cursor: pointer;
+text-transform: uppercase; white-space: nowrap;
+transition: color 0.15s, border-color 0.15s;
+}
+#lyrics-toggle:hover, #lyrics-toggle.active { color: #fff; border-color: #fff; }
 #player-close {
 background: none; border: none; color: #444; cursor: pointer; font-size: 16px; line-height: 1;
 padding: 0 4px;
 }
 #player-close:hover { color: #fff; }
 
-/* ── SOCIALS CORNER ── */
+/* lyrics panel */
+#lyrics-panel {
+display: none;
+border-top: 1px solid #1a1a1a;
+max-height: 220px;
+overflow-y: auto;
+padding: 18px 24px 20px;
+}
+#lyrics-panel.open { display: block; }
+#lyrics-content {
+font-size: 13px;
+line-height: 2;
+color: rgba(255,255,255,0.55);
+white-space: pre-wrap;
+max-width: 600px;
+}
+#lyrics-content .verse { margin-bottom: 16px; }
+#lyrics-panel::-webkit-scrollbar { width: 3px; }
+#lyrics-panel::-webkit-scrollbar-track { background: #111; }
+#lyrics-panel::-webkit-scrollbar-thumb { background: #333; }
+
+/* ── SOCIALS BAR ── */
 #socials {
 position: fixed;
-top: 18px; right: 18px;
-z-index: 9998;
+top: 0; left: 0; right: 0;
+z-index: 99999;
 display: flex;
-flex-direction: column;
-align-items: flex-end;
-gap: 6px;
+flex-direction: row;
+align-items: center;
+justify-content: center;
+gap: 0;
+background: #000;
+border-bottom: 1px solid #1e1e1e;
+height: 34px;
+overflow-x: auto;
+overflow-y: hidden;
+scrollbar-width: none;
 }
+#socials::-webkit-scrollbar { display: none; }
 .social-link {
 display: flex;
 align-items: center;
-gap: 7px;
-color: rgba(255,255,255,0.35);
+color: rgba(255,255,255,0.3);
 text-decoration: none;
-font-size: 11px;
+font-size: 10px;
 letter-spacing: 1px;
+text-transform: uppercase;
 transition: color 0.15s;
 white-space: nowrap;
+padding: 0 14px;
+height: 100%;
+border-right: 1px solid #1a1a1a;
+flex-shrink: 0;
 }
+.social-link:first-child { border-left: 1px solid #1a1a1a; }
 .social-link:hover { color: #fff; }
-.social-icon {
-width: 22px; height: 22px;
-border: 1px solid currentColor;
-display: flex; align-items: center; justify-content: center;
-font-size: 11px; flex-shrink: 0;
-}
+.social-icon { display: none; }
 
 </style>
 </head>
 <body>
+<div id="cursor"></div>
 
 <!-- ── SOCIALS CORNER ── -->
 
 <div id="socials">
-  <a class="social-link" href="#" title="Instagram">
-    <span class="social-icon">ig</span>
-    <span>@hsein</span>
-  </a>
-  <a class="social-link" href="#" title="SoundCloud">
-    <span class="social-icon">sc</span>
-    <span>soundcloud</span>
-  </a>
-  <a class="social-link" href="#" title="Bandcamp">
-    <span class="social-icon">bc</span>
-    <span>bandcamp</span>
-  </a>
-  <a class="social-link" href="mailto:hsein@example.com" title="Email">
-    <span class="social-icon">@</span>
-    <span>email</span>
-  </a>
+  <a class="social-link" href="#" title="Instagram">instagram</a>
+  <a class="social-link" href="#" title="SoundCloud">soundcloud</a>
+  <a class="social-link" href="#" title="Bandcamp">bandcamp</a>
+  <a class="social-link" href="#" title="Spotify">spotify</a>
+  <a class="social-link" href="#" title="Anghami">anghami</a>
+  <a class="social-link" href="mailto:hsein@example.com" title="Email">email</a>
 </div>
 
 <!-- ── STICKY PLAYER BAR ── -->
 
 <div id="player-bar">
-  <button id="player-btn" onclick="togglePlay()">▶</button>
-  <div id="player-title">— <span id="now-playing">nothing</span></div>
-  <div id="player-progress" onclick="seekClick(event)">
-    <div id="player-fill"></div>
+  <div id="player-main">
+    <button id="player-btn" onclick="togglePlay()">▶</button>
+    <div id="player-title">— <span id="now-playing">nothing</span></div>
+    <div id="player-progress" onclick="seekClick(event)">
+      <div id="player-fill"></div>
+    </div>
+    <div id="player-time">0:00 / 0:00</div>
+    <button id="lyrics-toggle" onclick="toggleLyrics()" title="lyrics">lyrics</button>
+    <button id="player-close" onclick="closePlayer()" title="close">×</button>
   </div>
-  <div id="player-time">0:00 / 0:00</div>
-  <button id="player-close" onclick="closePlayer()" title="close">×</button>
+  <div id="lyrics-panel">
+    <div id="lyrics-content"></div>
+  </div>
 </div>
 
 <div class="page" id="pg">
@@ -295,57 +464,55 @@ font-size: 11px; flex-shrink: 0;
 
   <!-- top zone -->
 
-  <div class="frag" style="top:20px; left:35vw; font-size:clamp(55px,11vw,120px); font-weight:700; color:#f06fff; opacity:0.07; transform:rotate(-3deg);">music</div>
-  <div class="frag" style="top:3350px; left:8vw; font-size:clamp(40px,9vw,100px); font-weight:700; color:#f06fff; opacity:0.07; transform:rotate(-2deg);">flanger dream</div>
-  <div class="frag" style="top:150px; right:2vw; font-size:11px; opacity:0.07; letter-spacing:4px; writing-mode:vertical-rl; color:#3bf0c4;">there's a curve in my bed
-  </div>
-  <div class="frag" style="top:260px; left:45vw; font-size:9px; opacity:0.08; letter-spacing:3px; color:#ffe135; transform:rotate(2deg);">fuck god fuck god fuck god</div>
+  <div class="frag bg-word" style="top:20px; left:35vw; font-size:clamp(55px,11vw,120px); font-weight:700; color:#f06fff; opacity:0.14; transform:rotate(-3deg);">music</div>
+  <div class="frag" style="top:150px; right:2vw; font-size:11px; opacity:0.07; letter-spacing:4px; writing-mode:vertical-rl; color:#3bf0c4;">bedroom recording session 2024 2025</div>
+  <div class="frag" style="top:260px; left:45vw; font-size:9px; opacity:0.08; letter-spacing:3px; color:#ffe135; transform:rotate(2deg);">tape hiss tape hiss tape hiss tape hiss tape hiss</div>
 
   <!-- zone 400–900 -->
 
-  <div class="frag" style="top:400px; right:6vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.09; transform:rotate(-5deg);">home</div>
-  <div class="frag" style="top:480px; left:50vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff; transform:rotate(-1deg);">most lyrics written on my hand in class</div>
-  <div class="frag" style="top:600px; right:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(7deg);">my xiu xiu is broken</div>
+  <div class="frag bg-word" style="top:400px; right:6vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.18; transform:rotate(-5deg);">home</div>
+  <div class="frag" style="top:480px; left:50vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff; transform:rotate(-1deg);">all lyrics written by hand in a notebook somewhere</div>
+  <div class="frag bg-word" style="top:600px; right:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.2; transform:rotate(7deg);">cassette</div>
   <div class="frag" style="top:720px; left:4vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4;">guitar · voice · phone mic · reverb · silence</div>
-  <div class="frag" style="top:830px; left:48vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.09; transform:rotate(-9deg);">DEAD</div>
+  <div class="frag bg-word" style="top:830px; left:48vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.18; transform:rotate(-9deg);">alone</div>
 
   <!-- zone 1000–1500 -->
 
-  <div class="frag" style="top:1020px; right:4vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ff6b35; opacity:0.08; transform:rotate(4deg);">noise</div>
+  <div class="frag bg-word" style="top:1020px; right:4vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ff6b35; opacity:0.16; transform:rotate(4deg);">noise</div>
   <div class="frag" style="top:1060px; left:40vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#f06fff; transform:rotate(-2deg);">recorded live / no edits / what you hear is what happened</div>
-  <div class="frag" style="top:1140px; left:2vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#3bf0c4; opacity:0.07; transform:rotate(-6deg);">sad</div>
-  <div class="frag" style="top:1380px; right:8vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#ffe135; opacity:0.09; transform:rotate(5deg);">winter</div>
+  <div class="frag bg-word" style="top:1140px; left:2vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#3bf0c4; opacity:0.14; transform:rotate(-6deg);">sad</div>
+  <div class="frag bg-word" style="top:1380px; right:8vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#ffe135; opacity:0.18; transform:rotate(5deg);">winter</div>
   <div class="frag" style="top:1430px; left:30vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff;">i don't know what genre this is and i don't care</div>
-  <div class="frag" style="top:1500px; right:25vw; font-size:clamp(22px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(-4deg);">reverb</div>
+  <div class="frag bg-word" style="top:1500px; right:25vw; font-size:clamp(22px,4vw,45px); font-weight:700; color:#a855f7; opacity:0.2; transform:rotate(-4deg);">reverb</div>
 
   <!-- zone 1600–2100 -->
 
   <div class="frag" style="top:1650px; left:1vw; font-size:9px; opacity:0.06; letter-spacing:3px; writing-mode:vertical-rl; color:#ff6b35;">the microphones neutral milk hotel eric's trip car seat headrest</div>
-  <div class="frag" style="top:1680px; left:55vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#3bf0c4; opacity:0.08; transform:rotate(6deg);">folk</div>
+  <div class="frag bg-word" style="top:1680px; left:55vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#3bf0c4; opacity:0.16; transform:rotate(6deg);">folk</div>
   <div class="frag" style="top:1780px; right:2vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#ffe135; transform:rotate(1deg);">somewhere between k records and a power outage</div>
-  <div class="frag" style="top:1880px; left:2vw; font-size:clamp(35px,6vw,65px); font-weight:700; color:#f06fff; opacity:0.09; transform:rotate(-7deg);">indie</div>
-  <div class="frag" style="top:2000px; left:55vw; font-size:clamp(22px,4vw,48px); font-weight:700; color:#ff6b35; opacity:0.1; transform:rotate(3deg);">demo</div>
+  <div class="frag bg-word" style="top:1880px; left:2vw; font-size:clamp(35px,6vw,65px); font-weight:700; color:#f06fff; opacity:0.18; transform:rotate(-7deg);">indie</div>
+  <div class="frag bg-word" style="top:2000px; left:55vw; font-size:clamp(22px,4vw,48px); font-weight:700; color:#ff6b35; opacity:0.2; transform:rotate(3deg);">demo</div>
   <div class="frag" style="top:2060px; left:10vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4;">songs about nothing. songs about everything. mostly nothing.</div>
-  <div class="frag" style="top:2130px; right:15vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#a855f7; opacity:0.09; transform:rotate(-3deg);">3am</div>
+  <div class="frag bg-word" style="top:2130px; right:15vw; font-size:clamp(28px,5vw,55px); font-weight:700; color:#a855f7; opacity:0.18; transform:rotate(-3deg);">3am</div>
 
   <!-- zone 2200–2700 -->
 
-  <div class="frag" style="top:2230px; left:2vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(5deg);">beirut</div>
+  <div class="frag bg-word" style="top:2230px; left:2vw; font-size:clamp(40px,7vw,80px); font-weight:700; color:#ffe135; opacity:0.16; transform:rotate(5deg);">beirut</div>
   <div class="frag" style="top:2280px; right:5vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#f06fff; transform:rotate(-2deg);">track 01 track 02 track 03 track 04 track 05 track 06</div>
-  <div class="frag" style="top:2380px; left:40vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#3bf0c4; opacity:0.09; transform:rotate(-8deg);">guitar</div>
+  <div class="frag bg-word" style="top:2380px; left:40vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#3bf0c4; opacity:0.18; transform:rotate(-8deg);">guitar</div>
   <div class="frag" style="top:2460px; left:5vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#ff6b35;">no release date. no label. no plan. just songs.</div>
-  <div class="frag" style="top:2530px; right:10vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#a855f7; opacity:0.1; transform:rotate(6deg);">voice</div>
-  <div class="frag" style="top:2640px; left:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(-4deg);">unfinished</div>
+  <div class="frag bg-word" style="top:2530px; right:10vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#a855f7; opacity:0.2; transform:rotate(6deg);">voice</div>
+  <div class="frag bg-word" style="top:2640px; left:20vw; font-size:clamp(20px,4vw,45px); font-weight:700; color:#ffe135; opacity:0.16; transform:rotate(-4deg);">unfinished</div>
   <div class="frag" style="top:2680px; right:30vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#fff;">track 07 track 08 track 09 track 10 track 11 ...</div>
 
   <!-- zone 2800–3300 -->
 
-  <div class="frag" style="top:2800px; left:3vw; font-size:clamp(45px,8vw,90px); font-weight:700; color:#f06fff; opacity:0.08; transform:rotate(-5deg);">sleep</div>
+  <div class="frag bg-word" style="top:2800px; left:3vw; font-size:clamp(45px,8vw,90px); font-weight:700; color:#f06fff; opacity:0.16; transform:rotate(-5deg);">sleep</div>
   <div class="frag" style="top:2860px; left:40vw; font-size:9px; opacity:0.07; letter-spacing:2px; color:#3bf0c4; transform:rotate(1deg);">this will come out eventually. maybe. probably. i think.</div>
-  <div class="frag" style="top:2960px; left:15vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.09; transform:rotate(4deg);">lo-fi</div>
-  <div class="frag" style="top:3020px; right:6vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.08; transform:rotate(-6deg);">done</div>
+  <div class="frag bg-word" style="top:2960px; left:15vw; font-size:clamp(30px,5vw,60px); font-weight:700; color:#ff6b35; opacity:0.18; transform:rotate(4deg);">lo-fi</div>
+  <div class="frag bg-word" style="top:3020px; right:6vw; font-size:clamp(25px,4vw,50px); font-weight:700; color:#ffe135; opacity:0.16; transform:rotate(-6deg);">done</div>
   <div class="frag" style="top:3060px; left:5vw; font-size:9px; opacity:0.06; letter-spacing:2px; color:#a855f7;">hsein — hsein — hsein — hsein — hsein — hsein — hsein</div>
-  <div class="frag" style="top:3150px; left:35vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#3bf0c4; opacity:0.07; transform:rotate(3deg);">thank you</div>
+  <div class="frag bg-word" style="top:3150px; left:35vw; font-size:clamp(35px,6vw,70px); font-weight:700; color:#3bf0c4; opacity:0.14; transform:rotate(3deg);">thank you</div>
   <div class="frag" style="top:3250px; right:8vw; font-size:9px; opacity:0.06; letter-spacing:2px; color:#ff6b35; transform:rotate(-1deg);">for listening. or for just being here. or for scrolling this far.</div>
 
   <!-- ===== TITLE AREA ===== -->
@@ -520,40 +687,51 @@ font-size: 11px; flex-shrink: 0;
 
   <div class="circle" style="width:200px;height:200px;top:1850px;right:4vw;opacity:0.05;"></div>
 
-  <!-- ===== RECOMMENDATIONS ===== -->
+  <!-- ===== CREDITS ===== -->
 
   <div class="line-h" style="top:2160px; left:6vw; width:88vw;"></div>
 
-  <div class="frag big rot-right" style="top:2190px; left:6vw;">if you like this,<br>listen to:</div>
+  <div class="frag big rot-left" style="top:2185px; left:6vw;">credits</div>
 
-  <div class="frag box-dashed" style="top:2310px; left:8vw; max-width:300px; font-size:13px; line-height:1.9;">
-    <span style="font-size:15px; font-weight:bold;">The Microphones</span><br>
-    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">mount eerie · 2001</span><br>
-    <span style="opacity:0.7;">the one that started it all for a lot of us. lo-fi folk recorded in a basement. feels like fog.</span>
+  <!-- LEFT COLUMN -->
+
+  <div class="frag" style="top:2290px; left:8vw; font-size:13px; line-height:2; opacity:0.8;">
+    all songs written, recorded &amp; produced by<br>
+    <span style="font-weight:bold; font-size:16px;">hsein</span>
   </div>
 
-  <div class="frag box-dashed rot-left" style="top:2360px; left:40vw; max-width:280px; font-size:13px; line-height:1.9;">
-    <span style="font-size:15px; font-weight:bold;">Neutral Milk Hotel</span><br>
-    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">in the aeroplane over the sea · 1998</span><br>
-    <span style="opacity:0.7;">loud and quiet and weird and beautiful. everyone's favorite for a reason.</span>
+  <div class="frag" style="top:2380px; left:10vw; font-size:11px; opacity:0.35; line-height:1.9; transform:rotate(-1deg);">
+    vocals — hsein<br>
+    guitar — hsein<br>
+    everything else — hsein
   </div>
 
-  <div class="frag box-dashed" style="top:2490px; left:20vw; max-width:290px; font-size:13px; line-height:1.9;">
-    <span style="font-size:15px; font-weight:bold;">Eric's Trip</span><br>
-    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">love tara · 1993</span><br>
-    <span style="opacity:0.7;">canadian bedroom noise pop. recorded on 4-track. sounds like it was made at 2am in a cold room.</span>
+  <div class="frag hand rot-left" style="top:2490px; left:14vw; font-size:18px; opacity:0.5;">
+    no label. no budget. no problem.
   </div>
 
-  <div class="frag box-dashed rot-tiny" style="top:2600px; left:6vw; max-width:270px; font-size:13px; line-height:1.9;">
-    <span style="font-size:15px; font-weight:bold;">Car Seat Headrest</span><br>
-    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">twin fantasy · 2011</span><br>
-    <span style="opacity:0.7;">made alone on a laptop and uploaded to bandcamp. became something huge. proof it works.</span>
+  <!-- RIGHT COLUMN -->
+
+  <div class="frag type rot-right" style="top:2290px; right:12vw; font-size:11px; opacity:0.45; line-height:2; text-align:right;">
+    recorded on a phone<br>
+    beirut, lebanon<br>
+    2024 – 2025
   </div>
 
-  <div class="frag box-dashed" style="top:2640px; left:44vw; max-width:280px; font-size:13px; line-height:1.9;">
-    <span style="font-size:15px; font-weight:bold;">Bright Eyes</span><br>
-    <span style="opacity:0.5; font-size:10px; letter-spacing:2px;">i'm wide awake it's morning · 2005</span><br>
-    <span style="opacity:0.7;">raspy voice, acoustic guitar, too many feelings. essential.</span>
+  <div class="frag tiny" style="top:2390px; right:10vw; opacity:0.25; line-height:2; transform:rotate(2deg); text-align:right;">
+    mixed in the same room it was recorded in<br>
+    mastered by nobody<br>
+    artwork: tbd
+  </div>
+
+  <div class="frag tiny rot-right" style="top:2500px; right:12vw; opacity:0.2; line-height:1.9; text-align:right;">
+    special thanks to everyone<br>
+    who listened to the demos<br>
+    and didn't say anything bad
+  </div>
+
+  <div class="frag" style="top:2590px; left:8vw; right:8vw; font-size:10px; opacity:0.18; letter-spacing:2px; transform:rotate(-0.5deg);">
+    © hsein 2025 — all songs original — no rights reserved — do whatever you want with it
   </div>
 
   <!-- ===== RANDOM SCATTERED STUFF ===== -->
@@ -562,35 +740,66 @@ font-size: 11px; flex-shrink: 0;
     ↯
   </div>
 
-  <div class="frag type rot-left" style="top:2720px; left:6vw; font-size:11px; opacity:0.3; line-height:2;">
+  <div class="frag type rot-left" style="top:2700px; left:6vw; font-size:11px; opacity:0.3; line-height:2;">
     this website was made with basic html<br>
     no frameworks. no npm install.<br>
     just a text file.
   </div>
 
-  <div class="frag hand" style="top:2840px; left:30vw; font-size:20px; opacity:0.5; transform: rotate(3deg);">
+  <div class="frag hand" style="top:2760px; left:30vw; font-size:20px; opacity:0.5; transform: rotate(3deg);">
     more music someday
   </div>
 
-  <div class="frag tiny rot-tiny" style="top:2920px; left:8vw; opacity:0.2;">
+  <div class="frag tiny rot-tiny" style="top:2810px; left:8vw; opacity:0.2;">
     © hsein — no rights reserved — beirut, lb — 2025
   </div>
 
-  <!-- visitor counter in corner -->
-
-  <div class="frag counter" style="top:2960px; right:8vw; text-align:right;">
+  <div class="frag counter" style="top:2810px; right:8vw; text-align:right;">
     visitors: <span id="ctr">000000</span>
   </div>
 
-  <!-- very bottom scattered -->
-
-  <div class="frag dimmer" style="top:3100px; left:15vw; font-size:11px; font-family:Arial,sans-serif; letter-spacing:3px; opacity:0.08; transform:rotate(-1deg); color:#ff6b35;">
+  <div class="frag dimmer" style="top:2850px; left:15vw; font-size:11px; font-family:Arial,sans-serif; letter-spacing:3px; opacity:0.08; transform:rotate(-1deg); color:#ff6b35;">
     hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein &nbsp;&nbsp; hsein
   </div>
 
-  <div class="frag hand" style="top:3200px; left:40vw; font-size:clamp(50px,9vw,90px); font-weight:700; opacity:0.08; color:#3bf0c4;">
-    end
+  <!-- ===== ALBUM ART SLOTS ===== -->
+
+  <!-- big main art, top right, rotated -->
+
+  <div class="art" id="art-1" style="top:340px; right:4vw; width:220px; height:220px; transform:rotate(5deg);">
+    <div class="art-placeholder"><span>⊞</span>album art</div>
+    <input type="file" accept="image/*" onchange="loadArt(this,'art-1')">
   </div>
+
+  <!-- mid left, tilted other way -->
+
+  <div class="art" id="art-2" style="top:900px; left:2vw; width:160px; height:160px; transform:rotate(-7deg);">
+    <div class="art-placeholder"><span>⊞</span>album art</div>
+    <input type="file" accept="image/*" onchange="loadArt(this,'art-2')">
+  </div>
+
+  <!-- big background one, influences zone -->
+
+  <div class="art" id="art-3" style="top:1650px; right:2vw; width:260px; height:260px; transform:rotate(4deg); opacity:0.07;">
+    <div class="art-placeholder"><span>⊞</span>album art</div>
+    <input type="file" accept="image/*" onchange="loadArt(this,'art-3')">
+  </div>
+
+  <!-- credits zone small, tilted -->
+
+  <div class="art" id="art-4" style="top:2220px; left:38vw; width:140px; height:140px; transform:rotate(-5deg);">
+    <div class="art-placeholder"><span>⊞</span>album art</div>
+    <input type="file" accept="image/*" onchange="loadArt(this,'art-4')">
+  </div>
+
+  <!-- bottom right, large, very faint -->
+
+  <div class="art" id="art-5" style="top:2620px; right:3vw; width:200px; height:200px; transform:rotate(8deg); opacity:0.08;">
+    <div class="art-placeholder"><span>⊞</span>album art</div>
+    <input type="file" accept="image/*" onchange="loadArt(this,'art-5')">
+  </div>
+
+  <div class="frag" style="top:2870px; left:8vw; font-size:clamp(40px,9vw,100px); font-weight:700; color:#f06fff; opacity:0.07; transform:rotate(-2deg);">flanger dream</div>
 
 </div>
 
@@ -604,11 +813,104 @@ font-size: 11px; flex-shrink: 0;
   const n = 3847 + Math.floor(Math.random() * 300);
   document.getElementById('ctr').textContent = String(n).padStart(6,'0');
 
-  // ── PLAYER ──
-  let audio = new Audio();
-  let currentEl = null;
+  // ── ALBUM ART UPLOAD ──
+  function loadArt(input, id) {
+    const file = input.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const wrap = document.getElementById(id);
+    wrap.innerHTML = `<img src="${url}" alt="album art"><input type="file" accept="image/*" onchange="loadArt(this,'${id}')">`;
+  }
 
-  // Tracks: replace src with actual file paths or URLs when you have them
+  // ── LYRICS ──
+  // Replace these with your actual lyrics. Each key matches the track title.
+  const lyrics = {
+    'track 01': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here
+repeat if needed
+
+[verse 2]
+more words
+more words`,
+
+    'track 02': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here
+repeat if needed`,
+
+    'track 03': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 04': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 05': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 06': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 07': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 08': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 09': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 10': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+
+    'track 11': `[verse 1]
+add your lyrics here
+line by line
+
+[chorus]
+the chorus goes here`,
+  };
+
+  // ── TRACKS ──
+  // Replace null with file path / URL when you have audio files
   const tracks = {
     'track 01': null,
     'track 02': null,
@@ -623,6 +925,10 @@ font-size: 11px; flex-shrink: 0;
     'track 11': null,
   };
 
+  let audio = new Audio();
+  let currentEl = null;
+  let lyricsOpen = false;
+
   function fmt(s) {
     if (!s || isNaN(s)) return '0:00';
     const m = Math.floor(s / 60);
@@ -630,42 +936,45 @@ font-size: 11px; flex-shrink: 0;
     return m + ':' + String(sec).padStart(2, '0');
   }
 
+  function showLyrics(title) {
+    const text = lyrics[title] || '(no lyrics yet)';
+    document.getElementById('lyrics-content').textContent = text;
+  }
+
+  function toggleLyrics() {
+    lyricsOpen = !lyricsOpen;
+    document.getElementById('lyrics-panel').classList.toggle('open', lyricsOpen);
+    document.getElementById('lyrics-toggle').classList.toggle('active', lyricsOpen);
+  }
+
   function playTrack(el) {
     const title = el.dataset.title;
-    const src = tracks[title];
 
-    // if clicking the same track, toggle
     if (currentEl === el) {
       togglePlay();
       return;
     }
 
-    // deactivate previous
     if (currentEl) currentEl.classList.remove('playing');
     currentEl = el;
     el.classList.add('playing');
 
+    showLyrics(title);
+
+    const src = tracks[title];
     if (src) {
       audio.src = src;
       audio.play();
+      document.getElementById('player-btn').textContent = '⏸';
     } else {
-      // no file yet — simulate with a dummy duration for UI demo
       audio.src = '';
-      showNoFile(title);
-      return;
+      document.getElementById('player-btn').textContent = '▶';
+      document.getElementById('player-fill').style.width = '0%';
+      document.getElementById('player-time').textContent = '– / –';
     }
 
     document.getElementById('now-playing').textContent = title + ' — flanger dream';
     document.getElementById('player-bar').classList.add('visible');
-    document.getElementById('player-btn').textContent = '⏸';
-  }
-
-  function showNoFile(title) {
-    document.getElementById('now-playing').textContent = title + ' (no file yet)';
-    document.getElementById('player-bar').classList.add('visible');
-    document.getElementById('player-btn').textContent = '▶';
-    document.getElementById('player-fill').style.width = '0%';
-    document.getElementById('player-time').textContent = '– / –';
   }
 
   function togglePlay() {
@@ -684,6 +993,9 @@ font-size: 11px; flex-shrink: 0;
     audio.src = '';
     if (currentEl) currentEl.classList.remove('playing');
     currentEl = null;
+    lyricsOpen = false;
+    document.getElementById('lyrics-panel').classList.remove('open');
+    document.getElementById('lyrics-toggle').classList.remove('active');
     document.getElementById('player-bar').classList.remove('visible');
   }
 
@@ -707,6 +1019,21 @@ font-size: 11px; flex-shrink: 0;
     document.getElementById('player-fill').style.width = '0%';
     if (currentEl) currentEl.classList.remove('playing');
     currentEl = null;
+  });
+
+  // ── CUSTOM CURSOR ──
+  const cur = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cur.style.left = e.clientX + 'px';
+    cur.style.top = e.clientY + 'px';
+  });
+  document.addEventListener('mousedown', () => {
+    cur.style.transform = 'translate(-50%,-50%) scale(2.5)';
+    cur.style.background = '#ffe135';
+  });
+  document.addEventListener('mouseup', () => {
+    cur.style.transform = 'translate(-50%,-50%) scale(1)';
+    cur.style.background = '#fff';
   });
 </script>
 
